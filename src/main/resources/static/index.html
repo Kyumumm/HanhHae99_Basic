@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Service</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+
+    <!-- JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+
+    <!-- 구글폰트 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200&display=swap" rel="stylesheet">
+
+    <style type="text/css">
+        @import url(//spoqa.github.io/spoqa-han-sans/css/SpoqaHanSans-kr.css);
+
+        * {
+            font-family: 'Noto Serif KR', serif;
+        }
+
+        .wrap {
+            width: 900px;
+            margin: auto;
+        }
+
+        .comment {
+            color: blue;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        .card-columns {
+            width: 500px;
+        }
+        #title-box {
+            background-color: darkgrey;
+        }
+
+        #post-box {
+            width: 500px;
+            margin: 20px auto;
+            padding: 30px;
+            border: black solid;
+            border-radius: 5px;
+        }
+        #card {
+            width: 500px;
+            margin: 20px auto;
+            padding: 30px;
+            border: black solid;
+            border-radius: 5px;
+        }
+        #cards-box {
+            margin: auto;
+            position: absolute;
+        }
+
+        #commentBtn {
+            margin-left: 50px;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            // HTML 문서를 로드할 때마다 실행합니다.
+            getMessages();
+        })
+
+        function getMessages() {
+            // 1. 기존 메모 내용을 지웁니다.
+            $('#cards-box').empty();
+
+            // 2. 메모 목록을 불러와서 HTML로 붙입니다.
+            $.ajax({
+                type: 'GET',
+                url: '/api/blogs',
+                success: function (response) {
+                    for(let i =0; i<response.length; i++) {
+                        let blog = response[i];
+                        let id = blog.id;
+                        let title = blog.title;
+                        let name = blog.name;
+                        let comment = blog.comment;
+                        let today = new Date(blog.modifiedAt)
+                        let time_before = time2str(today);
+
+                        addHTML(id, title,name, comment, time_before);
+                    }
+                }
+            })
+        }
+
+        function time2str(date) {
+            let today = new Date()
+            let time = (today - date) / 1000 / 60  // 분
+
+            if (time < 60) {
+                return parseInt(time) + "분 전"
+            }
+            time = time / 60  // 시간
+            if (time < 24) {
+                return parseInt(time) + "시간 전"
+            }
+            time = time / 24
+            if (time < 7) {
+                return parseInt(time) + "일 전"
+            }
+            return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`
+        }
+
+        function addHTML(id, title,name, comment, time_before) {
+            // 1. HTML 태그를 만듭니다.
+            let tempHtml = `
+        <div class="card" id="card">
+        <!-- date/username 영역 -->
+        <div class="metadata">
+             <div id="${id}-title" class="username" onclick="commentOpenClose('${id}')" >
+                 제목 : ${title}
+            </div>
+            <div class="date">
+                <p> 작성 시간 : ${time_before} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <button class="commentBnt" id="commentBtn" onclick="commentOpenClose('${id}')"> 코멘트 열기 !</button>
+                </p>
+            </div>
+            <div id="${id}-name" class="username" style="display: none">
+                작성자 : ${name}
+            </div>
+        </div>
+        <div class="contents">
+            <div id="${id}-contents" class="comment" style="display: none">
+                코멘트
+                 <hr>
+                ${comment}
+            </div>
+        </div>
+    </div>`;
+            // 2. #cards-box 에 HTML을 붙인다.
+            $('#cards-box').append(tempHtml);
+        }
+
+        function isValidContents(contents) {
+            if (contents == '') {
+                alert('내용을 입력해주세요');
+                return false;
+            }
+            if (contents.trim().length > 140) {
+                alert('공백 포함 140자 이하로 입력해주세요');
+                return false;
+            }
+            return true;
+        }
+        // 메모를 생성합니다.
+        function writePost() {
+            // 1. 작성한 메모를 불러옵니다.
+            let comment = $('#contents').val();
+            // 2. 작성한 메모가 올바른지 isValidContents 함수를 통해 확인합니다.
+            if (isValidContents(comment) == false) {
+                return;
+            }
+            // 3. genRandomName 함수를 통해 익명의 username을 만듭니다.
+            let name = $('#name_text').val();
+            let title = $('#title_text').val();
+            // 4. 전달할 data JSON으로 만듭니다.
+            let data = {'comment': comment, 'title': title, 'name': name,};
+            // 5. POST /api/memos 에 data를 전달합니다.
+            $.ajax({
+                type: "POST",
+                url: "/api/blogs",
+                contentType: "application/json", // JSON 형식으로 전달함을 알리기
+                data: JSON.stringify(data),
+                success: function (response) {
+                    alert('메시지가 성공적으로 작성되었습니다.');
+                    window.location.reload();
+                }
+            });
+        }
+
+        function openClose() {
+            if ($("#post-box").css("display") == "block") {
+                $("#post-box").hide();
+
+                $("#btn-post-box").text("글 쓰기 !!");
+            } else {
+                $("#post-box").show();
+                $("#btn-post-box").text("글 그만 쓰기");
+            }
+        }
+
+        function commentOpenClose(id) {
+            if ($(`#${id}-contents`).css("display") == "block") {
+                $(`#${id}-contents`).hide();
+                $(`#${id}-name`).hide();
+                $("#commentBtn").text("코멘트 열기 !")
+            } else {
+                $(`#${id}-contents`).show();
+                $(`#${id}-name`).show();
+                $("#commentBtn").text("코멘트 접기 !")
+
+            }
+        }
+    </script>
+
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="jumbotron" id="title-box">
+            <h1 class="display-4">누구나 블로그 !!</h1>
+            <p class="lead">끄적 블로그 </p>
+            <hr class="my-4">
+            <p class="lead">
+                <button onclick="openClose()" id="btn-post-box" type="button" class="btn btn-primary">글 쓰기
+                </button>
+            </p>
+
+        </div>
+        <div id="post-box" class="form-post" style="display:none">
+            <div>
+                <div class="form-group">
+                    <label for="title_text">제목</label>
+                    <input id="title_text" class="form-control" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label for="title_text">이름</label>
+                    <input id="name_text" class="form-control" placeholder="">
+                </div>
+                <div class="form-group">
+                    <label for="contents">간단 코멘트</label>
+                    <textarea id="contents" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="writePost()">글 쓰기</button>
+            </div>
+        </div>
+        <div id="cards-box" class="form-group">
+
+        </div>
+    </div>
+
+
+</body>
+
+</html>
