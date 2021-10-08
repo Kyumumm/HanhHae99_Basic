@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="/css/style.css">
+    <meta charset="UTF-8">
+    <title>회원가입 페이지</title>
+    <style>
+
+        a {
+            text-decoration: none;
+        }
+
+        #login-title {
+            font-family: 'Jua', sans-serif !important;
+            text-align: center;
+        }
+
+        #login-title span {
+            font-size: 50px;
+            font-family: 'Jua', sans-serif !important;
+        }
+
+        .signup-error-comment {
+            color: red;
+        }
+
+    </style>
+    <script>
+    </script>
+</head>
+<body>
+<div id="login-form">
+    <div id="login-title">Sign up Your Blog</div>
+
+    <form action="/user/signup" method="post">
+
+        <div class="login-id-label">Username</div>
+        <input type="text" id="IdBox" name="username" placeholder="Username" class="login-input-box">
+        <h5 class="signup-error-comment" th:if="${errortext}" th:text="${errortext}">Error</h5>
+
+        <div class="login-id-label">Password</div>
+        <input type="password" id="password" name="password" class="login-input-box">
+
+        <div class="login-id-label">Enter Password Again</div>
+        <input type="password" id="re_password" name="re_password" placeholder="Check Password" class="login-input-box">
+
+        <div class="login-id-label">email</div>
+        <input type="text" id="email" name="email" class="login-input-box">
+
+        <button id="login-id-submit">회원 가입</button>
+    </form>
+
+</div>
+</body>
+</html>

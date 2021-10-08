@@ -1,4 +1,4 @@
-package com.sparta.hanghae99_02_pjt.models;
+package com.sparta.hanghae99_02_pjt.Dto;
 
 import lombok.Getter;
 

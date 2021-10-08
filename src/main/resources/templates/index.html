@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.w3.org/1999/xhtml">
 
 <head>
     <meta charset="UTF-8">
@@ -62,17 +63,100 @@
             margin: auto;
             position: absolute;
         }
+        .form-group {
+            margin: auto;
+            position: absolute;
+        }
 
         #commentBtn {
             margin-left: 50px;
         }
+
+        .contents div.edit {
+            display: none;
+        }
+
+
+        .contents textarea.te-edit {
+            border-right: none;
+            border-top: none;
+            border-left: none;
+            resize: none;
+            border-bottom: 1px solid #212529;
+            width: 100%;
+            font-family: 'Spoqa Han Sans';
+        }
+
+        .footer {
+            position: relative;
+            height: 40px;
+        }
+
+        .footer img.icon-start-edit {
+            cursor: pointer;
+            position: absolute;
+            bottom: 14px;
+            right: 55px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .footer img.icon-end-edit {
+            cursor: pointer;
+            position: absolute;
+            display: none;
+            bottom: 14px;
+            right: 55px;
+            width: 20px;
+            height: 15px;
+        }
+
+        .footer img.icon-delete {
+            cursor: pointer;
+            position: absolute;
+            bottom: 12px;
+            right: 19px;
+            width: 14px;
+            height: 18px;
+        }
     </style>
 
-    <script>
+    <script th:inline="javascript">
         $(document).ready(function () {
             // HTML 문서를 로드할 때마다 실행합니다.
             getMessages();
         })
+
+        // 댓글을 작성하고 post 요청을 보내 저장합니다.
+        function WirteReply(id) {
+            var username = [[${username}]];
+            let reply = $(`#${id}-replytextarea`).val()
+            console.log(reply)
+            if (isValidContents(reply) == false) {
+                return;
+            }
+
+            let data = {'postid': id, 'username': username, 'reply': reply};
+            $.ajax({
+                type: "POST",
+                url: "/api/reply",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    if (response == true) {
+                        alert('메시지가 성공적으로 작성되었습니다.');
+                        window.location.reload();
+                    } else {
+                        alert('로그인을 해주세요');
+                        window.location.replace("/user/login");
+                    }
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    alert('로그인을 해주세요');
+                    window.location.replace("/user/login");
+                }
+            });
+        }
 
         function getMessages() {
             // 1. 기존 메모 내용을 지웁니다.
@@ -88,11 +172,20 @@
                         let id = blog.id;
                         let title = blog.title;
                         let name = blog.name;
+                        // 3. genRandomName 함수를 통해 익명의 username을 만듭니다.
+                        // let name = $('#name_text').val();
                         let comment = blog.comment;
                         let today = new Date(blog.modifiedAt)
                         let time_before = time2str(today);
-
-                        addHTML(id, title,name, comment, time_before);
+                        let byme = false
+                        /*<![CDATA[*/
+                        let query = [[${username}]];
+                        /*]]>*/
+                        if(name == query) {
+                            byme = true
+                        }
+                        console.log(name, query, byme)
+                        addHTML(id, title,name, comment, time_before, byme);
                     }
                 }
             })
@@ -116,34 +209,76 @@
             return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`
         }
 
-        function addHTML(id, title,name, comment, time_before) {
+        function addHTML(id, title,name, comment, time_before, byme) {
             // 1. HTML 태그를 만듭니다.
-            let tempHtml = `
+            let tempHtml_true = ` <a href="detail.html?id=${id}">
         <div class="card" id="card">
         <!-- date/username 영역 -->
         <div class="metadata">
              <div id="${id}-title" class="username" onclick="commentOpenClose('${id}')" >
-                 제목 : ${title}
+                 제목 :${title}
             </div>
             <div class="date">
                 <p> 작성 시간 : ${time_before} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <button class="commentBnt" id="commentBtn" onclick="commentOpenClose('${id}')"> 코멘트 열기 !</button>
                 </p>
             </div>
-            <div id="${id}-name" class="username" style="display: none">
-                작성자 : ${name}
+
+            <div id="${id}-name" class="username">
+                작성자:${name}
             </div>
         </div>
-        <div class="contents">
-            <div id="${id}-contents" class="comment" style="display: none">
+        <div class="contents" >
+            <div id="${id}-commentBox" class="username">
                 코멘트
                  <hr>
+            </div>
+            <div id="${id}-contents" class="comment">
                 ${comment}
             </div>
+            <div id="${id}-editarea" class="edit">
+                <textarea id="${id}-textarea" class="te-edit" name="" id="" cols="30" rows="5"></textarea>
+            </div>
         </div>
-    </div>`;
+        <!-- 버튼 영역-->
+        <div class="footer">
+            <img id="${id}-edit" class="icon-start-edit" src="images/edit.png" alt="" onclick="editPost('${id}')">
+            <img id="${id}-delete" class="icon-delete" src="images/delete.png" alt="" onclick="deleteOne('${id}')">
+            <img id="${id}-submit" class="icon-end-edit" src="images/done.png" alt="" onclick="submitEdit('${id}')">
+                        </div>
+                    </div>
+                </a> `;
+            let tempHtml_false = ` <a href="detail.html?id=${id}">
+        <div class="card" id="card">
+        <!-- date/username 영역 -->
+        <div class="metadata">
+             <div id="${id}-title" class="username" onclick="commentOpenClose('${id}')" >
+                 제목 :${title}
+            </div>
+            <div class="date">
+                <p> 작성 시간 : ${time_before} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                </p>
+            </div>
+
+            <div id="${id}-name" class="username">
+                작성자:${name}
+            </div>
+        </div>
+        <div class="contents" >
+            <div id="${id}-commentBox" class="username">
+                코멘트
+                 <hr>
+            </div>
+            <div id="${id}-contents" class="comment">
+                ${comment}
+            </div>
+            <div id="${id}-editarea" class="edit">
+                <textarea id="${id}-textarea" class="te-edit" name="" id="" cols="30" rows="5"></textarea>
+                    </div>
+                </div>
+            </div>
+            </a> `;
             // 2. #cards-box 에 HTML을 붙인다.
-            $('#cards-box').append(tempHtml);
+            byme? $('#cards-box').append(tempHtml_true) : $('#cards-box').append(tempHtml_false);
         }
 
         function isValidContents(contents) {
@@ -165,20 +300,31 @@
             if (isValidContents(comment) == false) {
                 return;
             }
+            /*<![CDATA[*/
+            let query = [[${username}]];
+            console.log(query);
+            /*]]>*/
             // 3. genRandomName 함수를 통해 익명의 username을 만듭니다.
-            let name = $('#name_text').val();
+            // let name = $('#name_text').val();
+            let name = query;
+
             let title = $('#title_text').val();
             // 4. 전달할 data JSON으로 만듭니다.
             let data = {'comment': comment, 'title': title, 'name': name,};
+            console.log(comment + title + name);
             // 5. POST /api/memos 에 data를 전달합니다.
             $.ajax({
                 type: "POST",
-                url: "/api/blogs",
+                url: `api/blogs`,
                 contentType: "application/json", // JSON 형식으로 전달함을 알리기
                 data: JSON.stringify(data),
                 success: function (response) {
                     alert('메시지가 성공적으로 작성되었습니다.');
                     window.location.reload();
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    alert('로그인을 해주세요');
+                    window.location.replace("/user/login");
                 }
             });
         }
@@ -197,11 +343,13 @@
         function commentOpenClose(id) {
             if ($(`#${id}-contents`).css("display") == "block") {
                 $(`#${id}-contents`).hide();
+                $(`#${id}-commentBox`).hide();
                 $(`#${id}-name`).hide();
                 $("#commentBtn").text("코멘트 열기 !")
             } else {
                 $(`#${id}-contents`).show();
                 $(`#${id}-name`).show();
+                $(`#${id}-commentBox`).show();
                 $("#commentBtn").text("코멘트 접기 !")
 
             }
@@ -213,14 +361,26 @@
 <body>
     <div class="wrap">
         <div class="jumbotron" id="title-box">
-            <h1 class="display-4">누구나 블로그 !!</h1>
+            <a sec:authorize="!isAuthenticated()" id="login-text" href="/user/login">
+                로그인
+            </a>
+            <a sec:authorize="!isAuthenticated()" id="signup-text" href="/user/signup">
+                회원가입
+            </a>
+            <h1 id="header-title-login-user">
+                <span th:text="${username}"></span>
+            </h1>
+            <h1 class="display-4">블로그 !!</h1>
             <p class="lead">끄적 블로그 </p>
             <hr class="my-4">
             <p class="lead">
-                <button onclick="openClose()" id="btn-post-box" type="button" class="btn btn-primary">글 쓰기
+
+                <button sec:authorize="isAuthenticated()" onclick="openClose()" id="btn-post-box" type="button" class="btn btn-primary">글 쓰기
                 </button>
             </p>
-
+            <form id="my_form" method="post" action="/user/logout">
+                <a sec:authorize="isAuthenticated()" id="logout-text" href="javascript:{}" onclick="document.getElementById('my_form').submit();">로그아웃</a>
+            </form>
         </div>
         <div id="post-box" class="form-post" style="display:none">
             <div>
@@ -229,19 +389,25 @@
                     <input id="title_text" class="form-control" placeholder="">
                 </div>
                 <div class="form-group">
-                    <label for="title_text">이름</label>
-                    <input id="name_text" class="form-control" placeholder="">
+                    <label for="title_text">이름 : </label>
+                    <span id="thname" th:text="${username}"></span>
+<!--                    <input id="name_text" class="form-control" placeholder="">-->
                 </div>
                 <div class="form-group">
                     <label for="contents">간단 코멘트</label>
                     <textarea id="contents" class="form-control" rows="2"></textarea>
                 </div>
+                <li sec:authorize="isAuthenticated()">
                 <button type="button" class="btn btn-primary" onclick="writePost()">글 쓰기</button>
+                </li>
             </div>
         </div>
         <div id="cards-box" class="form-group">
 
         </div>
+
+
+
     </div>
 
 

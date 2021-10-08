@@ -1,5 +1,6 @@
 package com.sparta.hanghae99_02_pjt.models;
 
+import com.sparta.hanghae99_02_pjt.Dto.BlogRequestDto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -22,6 +23,12 @@ public class Blog extends Timestamped{
     private String comment;
 
     public Blog(BlogRequestDto blogRequestDto){
+        this.title = blogRequestDto.getTitle();
+        this.name = blogRequestDto.getName();
+        this.comment = blogRequestDto.getComment();
+    }
+
+    public void update(BlogRequestDto blogRequestDto) {
         this.title = blogRequestDto.getTitle();
         this.name = blogRequestDto.getName();
         this.comment = blogRequestDto.getComment();
